@@ -42,6 +42,23 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
+const ItemRow = ({ item, isSubstituted = false }: { item: OrderItem; isSubstituted?: boolean; key?: string }) => (
+  <div className={`flex items-start gap-4 py-3 ${isSubstituted ? 'pl-12 border-l-2 border-gray-100 ml-4' : ''}`}>
+    <img src={item.image} alt={item.name} className="w-12 h-12 rounded object-cover border border-gray-100" />
+    <div className="flex-1 min-w-0">
+      <h4 className="text-sm font-medium text-gray-900 truncate">{item.name}</h4>
+      <p className="text-xs text-gray-500">
+        {item.price.toFixed(2)}€ | {item.unit}
+      </p>
+      <p className="text-[10px] text-gray-400 font-mono">{item.ean}</p>
+    </div>
+    <div className="flex flex-col items-end gap-2">
+      <StatusBadge status={item.status} />
+      <span className="text-xs text-gray-600">Qté {item.quantity}</span>
+    </div>
+  </div>
+);
+
 const SectionHeader = ({ title, count, icon: Icon, onToggle, isOpen }: any) => (
   <button 
     onClick={onToggle}
@@ -60,8 +77,6 @@ const SectionHeader = ({ title, count, icon: Icon, onToggle, isOpen }: any) => (
 );
 
 export default function App() {
-  const [orderData, setOrderData] = useState(MOCK_ORDER);
-  const [editingImage, setEditingImage] = useState<{ id: string, url: string } | null>(null);
   const [openSections, setOpenSections] = useState({
     articles: true,
     preparation: true,
@@ -80,103 +95,13 @@ export default function App() {
     }));
   };
 
-  const handleImageUpdate = (id: string, newUrl: string) => {
-    const updateItems = (items: OrderItem[]) => 
-      items.map(item => {
-        if (item.id === id) return { ...item, image: newUrl };
-        if (item.substitutedBy?.id === id) return { ...item, substitutedBy: { ...item.substitutedBy, image: newUrl } };
-        return item;
-      });
-
-    setOrderData(prev => ({
-      ...prev,
-      articles: {
-        delivery: updateItems(prev.articles.delivery),
-        pickup: updateItems(prev.articles.pickup)
-      },
-      packages: prev.packages.map(pkg => ({
-        ...pkg,
-        items: updateItems(pkg.items)
-      }))
-    }));
-    setEditingImage(null);
-  };
-
-  const ItemRow = ({ item, isSubstituted = false }: { item: OrderItem; isSubstituted?: boolean; key?: string }) => (
-    <div className={`flex items-start gap-4 py-3 group relative ${isSubstituted ? 'pl-12 border-l-2 border-gray-100 ml-4' : ''}`}>
-      <div className="relative">
-        <img src={item.image} alt={item.name} className="w-12 h-12 rounded object-cover border border-gray-100" />
-        <button 
-          onClick={() => setEditingImage({ id: item.id, url: item.image })}
-          className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded"
-        >
-          <Pencil className="w-3 h-3 text-white" />
-        </button>
-      </div>
-      <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-medium text-gray-900 truncate">{item.name}</h4>
-        <p className="text-xs text-gray-500">
-          {item.price.toFixed(2)}€ | {item.unit}
-        </p>
-        <p className="text-[10px] text-gray-400 font-mono">{item.ean}</p>
-      </div>
-      <div className="flex flex-col items-end gap-2">
-        <StatusBadge status={item.status} />
-        <span className="text-xs text-gray-600">Qté {item.quantity}</span>
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen p-6 font-sans">
-      {/* Image Edit Modal */}
-      <AnimatePresence>
-        {editingImage && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 w-full max-w-md"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Modifier l'URL de l'image</h3>
-              <div className="space-y-4">
-                <div className="flex justify-center mb-4">
-                  <img src={editingImage.url} className="w-24 h-24 rounded-lg border border-gray-100 object-cover" alt="Preview" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase mb-1">URL de l'image</label>
-                  <input 
-                    type="text" 
-                    value={editingImage.url}
-                    onChange={(e) => setEditingImage({ ...editingImage, url: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    placeholder="https://..."
-                  />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button 
-                    onClick={() => setEditingImage(null)}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100"
-                  >
-                    Annuler
-                  </button>
-                  <button 
-                    onClick={() => handleImageUpdate(editingImage.id, editingImage.url)}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                  >
-                    Enregistrer
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
+          
           {/* Articles Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <SectionHeader 
@@ -193,42 +118,19 @@ export default function App() {
                   exit={{ height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="p-6 space-y-8">
-                    {/* Delivery Group */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <div>
-                          <p className="text-xs font-semibold text-gray-900">Livraison à domicile</p>
-                          <p className="text-[10px] text-gray-400">Traiteur</p>
+                  <div className="p-6">
+                    <div className="flex flex-col">
+                      {MOCK_ORDER.articles.delivery.map(item => (
+                        <ItemRow key={item.id} item={item} />
+                      ))}
+                      {MOCK_ORDER.articles.pickup.map(item => (
+                        <div key={item.id}>
+                          <ItemRow item={item} />
+                          {item.substitutedBy && (
+                            <ItemRow item={item.substitutedBy} isSubstituted />
+                          )}
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        {orderData.articles.delivery.map(item => (
-                          <ItemRow key={item.id} item={item} />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Pickup Group */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <div>
-                          <p className="text-xs font-semibold text-gray-900">Retrait magasin</p>
-                          <p className="text-[10px] text-gray-400">Drive</p>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        {orderData.articles.pickup.map(item => (
-                          <div key={item.id}>
-                            <ItemRow item={item} />
-                            {item.substitutedBy && (
-                              <ItemRow item={item.substitutedBy} isSubstituted />
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </motion.div>
@@ -253,7 +155,7 @@ export default function App() {
                   className="overflow-hidden"
                 >
                   <div className="p-6 space-y-6">
-                    {orderData.packages.map((pkg) => (
+                    {MOCK_ORDER.packages.map((pkg) => (
                       <div key={pkg.id} className="border border-gray-100 rounded-lg overflow-hidden">
                         <div className="flex items-center justify-between p-4 bg-gray-50/50">
                           <div className="flex items-center gap-3">
@@ -349,7 +251,7 @@ export default function App() {
               </div>
 
               <div className="space-y-6 relative before:absolute before:left-[103px] before:top-2 before:bottom-2 before:w-px before:bg-gray-100">
-                {orderData.history.map((event, idx) => (
+                {MOCK_ORDER.history.map((event, idx) => (
                   <div key={idx} className="flex items-start gap-8 relative">
                     <div className="w-20 text-right shrink-0">
                       <p className="text-xs font-semibold text-gray-900">{event.date}</p>
@@ -387,11 +289,11 @@ export default function App() {
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="text-gray-500">Date de création</span>
-                <span className="text-gray-900 font-medium">{orderData.createdAt}</span>
+                <span className="text-gray-900 font-medium">{MOCK_ORDER.createdAt}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-gray-500">Date de livraison estimée</span>
-                <span className="text-gray-900 font-medium">{orderData.estimatedDelivery}</span>
+                <span className="text-gray-900 font-medium">{MOCK_ORDER.estimatedDelivery}</span>
               </div>
             </div>
           </div>
@@ -408,9 +310,9 @@ export default function App() {
               </button>
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-900">{orderData.client.name}</p>
-              <p className="text-xs text-gray-500">{orderData.client.email}</p>
-              <p className="text-xs text-gray-500">{orderData.client.phone}</p>
+              <p className="text-xs font-semibold text-gray-900">{MOCK_ORDER.client.name}</p>
+              <p className="text-xs text-gray-500">{MOCK_ORDER.client.email}</p>
+              <p className="text-xs text-gray-500">{MOCK_ORDER.client.phone}</p>
             </div>
           </div>
 
@@ -421,25 +323,15 @@ export default function App() {
               <span className="text-sm font-semibold text-gray-900">Mode de livraison</span>
             </div>
             
-            {orderData.deliveryMode.pickup && (
-              <div className="space-y-2">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Retrait magasin</p>
-                <div>
-                  <p className="text-xs font-semibold text-gray-900">{orderData.deliveryMode.pickup.store}</p>
-                  <p className="text-xs text-gray-500">{orderData.deliveryMode.pickup.email} | {orderData.deliveryMode.pickup.phone}</p>
-                </div>
-              </div>
-            )}
-
-            {orderData.deliveryMode.home && (
+            {MOCK_ORDER.deliveryMode.home && (
               <div className="space-y-2 relative">
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Livraison à domicile</p>
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-xs font-semibold text-gray-900">{orderData.deliveryMode.home.name}</p>
-                    <p className="text-xs text-gray-500">{orderData.deliveryMode.home.address}</p>
-                    <p className="text-xs text-gray-500">{orderData.deliveryMode.home.zip}, {orderData.deliveryMode.home.city}</p>
-                    <p className="text-xs text-gray-500">{orderData.deliveryMode.home.country}</p>
+                    <p className="text-xs font-semibold text-gray-900">{MOCK_ORDER.deliveryMode.home.name}</p>
+                    <p className="text-xs text-gray-500">{MOCK_ORDER.deliveryMode.home.address}</p>
+                    <p className="text-xs text-gray-500">{MOCK_ORDER.deliveryMode.home.zip}, {MOCK_ORDER.deliveryMode.home.city}</p>
+                    <p className="text-xs text-gray-500">{MOCK_ORDER.deliveryMode.home.country}</p>
                   </div>
                 </div>
               </div>
@@ -449,10 +341,10 @@ export default function App() {
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Contact de retrait</p>
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs font-semibold text-gray-900">{orderData.client.name}</p>
-                  <p className="text-xs text-gray-500">{orderData.deliveryMode.home?.address}</p>
-                  <p className="text-xs text-gray-500">{orderData.deliveryMode.home?.zip}, {orderData.deliveryMode.home?.city}</p>
-                  <p className="text-xs text-gray-500">{orderData.deliveryMode.home?.country}</p>
+                  <p className="text-xs font-semibold text-gray-900">{MOCK_ORDER.client.name}</p>
+                  <p className="text-xs text-gray-500">{MOCK_ORDER.deliveryMode.home?.address}</p>
+                  <p className="text-xs text-gray-500">{MOCK_ORDER.deliveryMode.home?.zip}, {MOCK_ORDER.deliveryMode.home?.city}</p>
+                  <p className="text-xs text-gray-500">{MOCK_ORDER.deliveryMode.home?.country}</p>
                 </div>
                 <button className="text-gray-400 hover:text-gray-600">
                   <Pencil className="w-3.5 h-3.5" />
@@ -476,16 +368,16 @@ export default function App() {
                 </button>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-900">{orderData.payment.billingAddress.name}</p>
-                <p className="text-xs text-gray-500">{orderData.payment.billingAddress.address}</p>
-                <p className="text-xs text-gray-500">{orderData.payment.billingAddress.zip}, {orderData.payment.billingAddress.city}</p>
-                <p className="text-xs text-gray-500">{orderData.payment.billingAddress.country}</p>
+                <p className="text-xs font-semibold text-gray-900">{MOCK_ORDER.payment.billingAddress.name}</p>
+                <p className="text-xs text-gray-500">{MOCK_ORDER.payment.billingAddress.address}</p>
+                <p className="text-xs text-gray-500">{MOCK_ORDER.payment.billingAddress.zip}, {MOCK_ORDER.payment.billingAddress.city}</p>
+                <p className="text-xs text-gray-500">{MOCK_ORDER.payment.billingAddress.country}</p>
               </div>
             </div>
 
             <div className="space-y-3">
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Méthode de paiement</p>
-              {orderData.payment.methods.map((method, idx) => (
+              {MOCK_ORDER.payment.methods.map((method, idx) => (
                 <div key={idx} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <div className="p-1 bg-gray-100 rounded">
@@ -504,15 +396,15 @@ export default function App() {
             <div className="pt-4 border-t border-gray-100 space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="text-gray-500">Sous-total</span>
-                <span className="text-gray-900">{orderData.payment.subtotal.toFixed(2)}€</span>
+                <span className="text-gray-900">{MOCK_ORDER.payment.subtotal.toFixed(2)}€</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-gray-500">Substitution</span>
-                <span className="text-gray-900">{orderData.payment.substitutionAdjustment.toFixed(2)}€</span>
+                <span className="text-gray-900">{MOCK_ORDER.payment.substitutionAdjustment.toFixed(2)}€</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-100">
                 <span className="text-sm font-bold text-gray-900">Total</span>
-                <span className="text-sm font-bold text-gray-900">{orderData.payment.total.toFixed(2)}€</span>
+                <span className="text-sm font-bold text-gray-900">{MOCK_ORDER.payment.total.toFixed(2)}€</span>
               </div>
             </div>
           </div>
